@@ -13,71 +13,85 @@ public enum Role
 
 public class Node
 {
-    private static readonly Random _random = new Random();
-    private static readonly ConcurrentBag<Node> _nodes = new();
+    private static readonly Random _random = new();
+    public static ConcurrentBag<Node> Nodes { get; set; } = [];
     private static readonly ConcurrentDictionary<Guid, (int term, Guid? candidate)> _votes = new();
+    public static int MinResetTimeout { get; set; } = 150;
+    public static int MaxResetTimeout { get; set; } = 300;
     private static bool _isRunning = true;
     private readonly System.Timers.Timer _actionTimer;
     private readonly object _logLock = new();
-    private int _currentTerm = 0;
+    public int CurrentTerm { get; set; } = 0;
     private Guid? _votedFor = null;
 
     public Role Role { get; set; }
     public Guid Id { get; set; }
-
+    public bool Healthy { get; set; } = true;
     public Node()
     {
         Id = Guid.NewGuid();
         Role = Role.Follower;
-        _actionTimer = new System.Timers.Timer(GetElectionTimeout());
-        _actionTimer.AutoReset = false;
+        _actionTimer = new System.Timers.Timer(GetElectionTimeout())
+        {
+            AutoReset = false
+        };
         _actionTimer.Elapsed += DoAction;
-        _nodes.Add(this);
+        Nodes.Add(this);
     }
 
-    private int GetElectionTimeout()
+    public static void Reset()
     {
-        return _random.Next(150, 300);
+        Nodes.Clear();
+        _votes.Clear();
     }
 
-    private void DoAction(object? sender, ElapsedEventArgs e)
+
+    private static int GetElectionTimeout()
+    {
+        return _random.Next(MinResetTimeout, MaxResetTimeout);
+    }
+
+    public void DoAction(object? sender, ElapsedEventArgs e)
     {
         if (!_isRunning) return;
 
-        switch (Role)
+        if (Healthy)
         {
-            case Role.Follower:
-                BecomeCandidate();
-                break;
-            case Role.Candidate:
-                BecomeCandidate();
-                break;
-            case Role.Leader:
-                SendHeartbeat();
-                break;
+            switch (Role)
+            {
+                case Role.Follower:
+                    BecomeCandidate();
+                    break;
+                case Role.Candidate:
+                    BecomeCandidate();
+                    break;
+                case Role.Leader:
+                    SendHeartbeat();
+                    break;
+            }
         }
     }
 
     private void BecomeCandidate()
     {
         Role = Role.Candidate;
-        _currentTerm++;
-        _votedFor = Id;
-        _votes[Id] = (_currentTerm, Id);
-        Log($"Becoming Candidate in term {_currentTerm}");
+        CurrentTerm++;
+        // _votedFor = Id;
+        _votes[Id] = (CurrentTerm, Id);
+        Log($"Becoming Candidate in term {CurrentTerm}");
 
         var votesReceived = 1;
 
-        foreach (var node in _nodes)
+        foreach (var node in Nodes)
         {
             if (node.Id != Id)
             {
-                var voteGranted = node.Vote(_currentTerm, Id);
+                var voteGranted = node.Vote(CurrentTerm, Id);
                 if (voteGranted) votesReceived++;
             }
         }
 
-        if (votesReceived > _nodes.Count / 2)
+        if (votesReceived > Nodes.Count / 2)
         {
             Role = Role.Leader;
             Log("Became Leader");
@@ -89,39 +103,49 @@ public class Node
 
     public bool Vote(int candidateTerm, Guid candidateId)
     {
-        if ((_votedFor == null || _currentTerm < candidateTerm) && _currentTerm <= candidateTerm)
+        if (Healthy)
         {
-            _votedFor = candidateId;
-            _currentTerm = candidateTerm;
-            _votes[Id] = (candidateTerm, candidateId);
-            Log($"Voting for {candidateId} in term {candidateTerm}");
-            ResetActionTimer();
-            return true;
+            var lastVote = _votes.GetValueOrDefault(Id, (term: 0, candidate: null));
+            if ((lastVote.candidate == null || lastVote.term < candidateTerm) && lastVote.term <= candidateTerm)
+            {
+                // _votedFor = candidateId;
+                CurrentTerm = candidateTerm;
+                _votes[Id] = (candidateTerm, candidateId);
+                Log($"Voting for {candidateId} in term {candidateTerm}");
+                ResetActionTimer();
+                return true;
+            }
         }
         return false;
     }
 
     private void SendHeartbeat()
     {
-        Log("Sending Heartbeat");
-        foreach (var node in _nodes)
+        if (Healthy)
         {
-            if (node.Id != Id)
+            Log("Sending Heartbeat");
+            foreach (var node in Nodes)
             {
-                node.ReceiveHeartbeat(_currentTerm);
+                if (node.Id != Id)
+                {
+                    node.ReceiveHeartbeat(CurrentTerm);
+                }
             }
+            ResetActionTimer();
         }
-        ResetActionTimer();
     }
 
     public void ReceiveHeartbeat(int leaderTerm)
     {
-        if (leaderTerm >= _currentTerm)
+        if (Healthy)
         {
-            _currentTerm = leaderTerm;
-            Role = Role.Follower;
-            Log($"Received Heartbeat in term {_currentTerm}");
-            ResetActionTimer();
+            if (leaderTerm >= CurrentTerm)
+            {
+                CurrentTerm = leaderTerm;
+                Role = Role.Follower;
+                Log($"Received Heartbeat in term {CurrentTerm}");
+                ResetActionTimer();
+            }
         }
     }
 
@@ -136,15 +160,15 @@ public class Node
     {
         lock (_logLock)
         {
-            if (System.IO.Directory.Exists("logs") == false)
+            if (Directory.Exists("logs") == false)
             {
-                System.IO.Directory.CreateDirectory("logs");
+                Directory.CreateDirectory("logs");
             }
 
-            if (System.IO.Directory.Exists("logs"))
+            if (Directory.Exists("logs"))
             {
                 var fileName = $"logs/{Id}.log";
-                System.IO.File.AppendAllText(fileName, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()} [{Role}] {message}\n");
+                File.AppendAllText(fileName, $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()} [{Role}] {message}\n");
             }
         }
     }
