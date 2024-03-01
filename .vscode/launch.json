@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Raft.Tests/bin/Debug/net8.0/Raft.Tests.dll",
+            "program": "${workspaceFolder}/Raft.Console/bin/Debug/net8.0/Raft.Console.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/Raft.Tests",
+            "cwd": "${workspaceFolder}/Raft.Console",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

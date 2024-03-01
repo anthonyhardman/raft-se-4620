@@ -15,7 +15,7 @@ public class Tests
     [TearDown]
     public void TearDown()
     {
-        Node.Reset();
+        Node.Nodes.Clear();
     }
 
 
