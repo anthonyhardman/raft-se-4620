@@ -2,7 +2,7 @@ namespace Raft.Console;
 
 public class LogEntry
 {
-    public LogEntry(int term, string key, int value, int index)
+    public LogEntry(int term, string key, int value)
     {
         Term = term;
         Key = key;

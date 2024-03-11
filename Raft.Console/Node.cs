@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Concurrent;
 using System.Timers;
 
@@ -21,205 +22,206 @@ public class Node
 
     public Role Role { get; set; }
     public Guid Id { get; set; }
-    public Guid MostRecentLeader { get; set; }
-    public int CurrentTerm { get; set; } = 0;
-    public Guid? VotedFor { get; set; } = null;
-    public int CommitIndex { get; set; }
-    public int LastApplied { get; set; }
-    public ConcurrentDictionary<Guid, int> NextIndex { get; set; }
-    public ConcurrentDictionary<Guid, int> MatchIndex { get; set; }
     private readonly System.Timers.Timer _actionTimer;
-    public ConcurrentDictionary<string, (int value, int logIndex)> StateMachine { get; set; } = new();
     public string LogFile => $"logs/{Id}.log";
-    public int LastLogIndex => File.ReadAllLines(LogFile).Length;
-    public int LastLogTerm => LastLogIndex > 0 ? int.Parse(File.ReadLines(LogFile).Last().Split(' ')[0]) : 0;
+    public int LastLogIndex => File.ReadLines(LogFile).Count() - 1;
+    public int CommitIndex { get; set; } = -1;
+    public int LastApplied { get; set; } = -1;
+    public int CurrentTerm { get; set; } = 0;
     public bool Healthy { get; set; } = true;
-
-    private int GetElectionTimeout()
-    {
-        if (Role == Role.Leader)
-        {
-            return 175;
-        }
-        return _random.Next(MinResetTimeout, MaxResetTimeout);
-    }
+    public ConcurrentDictionary<string, (int value, int logIndex)> StateMachine { get; set; } = new();
 
     private void CreateLogFile()
     {
-        if (Directory.Exists("logs") == false)
-        {
-            Directory.CreateDirectory("logs");
-        }
-
-        if (Directory.Exists("logs") && !File.Exists(LogFile))
-        {
-            File.Create(LogFile).Close();
-        }
+        if (!Directory.Exists("logs")) Directory.CreateDirectory("logs");
+        if (!File.Exists(LogFile)) File.Create(LogFile).Close();
     }
+
 
     public Node()
     {
         Id = Guid.NewGuid();
         Role = Role.Follower;
-        _actionTimer = new System.Timers.Timer(GetElectionTimeout())
-        {
-            AutoReset = false
-        };
-        _actionTimer.Elapsed += DoAction;
         Nodes.Add(this);
         CreateLogFile();
     }
 
-    public (int term, bool voteGranted) RequestVote(int term, Guid candidateId, int lastLogIndex, int lastLogTerm)
+    public void AppendEntry(int term, string key, int value)
     {
+        File.AppendAllText(LogFile, $"{term} {key} {value}\n");
+    }
+
+    public LogEntry GetLogEntry(int index)
+    {
+        var line = File.ReadLines(LogFile).ElementAt(index);
+        var parts = line.Split(' ');
+        return new LogEntry(int.Parse(parts[0]), parts[1], int.Parse(parts[2]));
+    }
+
+    public LogEntry[] GetLogEntries(int prevLogIndex)
+    {
+        var lines = File.ReadLines(LogFile).Skip(prevLogIndex + 1);
+        var entries = new List<LogEntry>();
+
+        foreach (var line in lines)
+        {
+            var parts = line.Split(' ');
+            entries.Add(new LogEntry(int.Parse(parts[0]), parts[1], int.Parse(parts[2])));
+        }
+
+        return [.. entries];
+    }
+
+    public (bool success, int term) AppendEntries(int term, Guid leaderId, int prevLogIndex, int prevLogTerm, LogEntry[] entries)
+    {
+        if (!Healthy)
+        {
+            return (false, CurrentTerm);
+        }
+        
         if (term < CurrentTerm)
         {
-            return (CurrentTerm, false);
+            return (false, CurrentTerm);
         }
 
-        bool isLogUpToDate = lastLogTerm > CurrentTerm || (lastLogTerm == CurrentTerm && lastLogIndex >= CommitIndex);
-
-        if ((VotedFor == null || VotedFor == candidateId) && isLogUpToDate)
+        if (LastLogIndex < prevLogIndex || (prevLogIndex >= 0 && GetLogEntry(prevLogIndex).Term != prevLogTerm))
         {
-            CurrentTerm = term;
-            VotedFor = candidateId;
-            ResetActionTimer();
-            return (CurrentTerm, true);
+            return (false, CurrentTerm);
         }
 
-        ResetActionTimer();
-        return (CurrentTerm, false);
+        CurrentTerm = term;
+        foreach (var entry in entries)
+        {
+            AppendEntry(entry.Term, entry.Key, entry.Value);
+        }
+        
+        CommitIndex = LastLogIndex;
+
+        UpdateStateMachine();
+
+        return (true, CurrentTerm);
     }
 
-    public void SendHeartbeat()
+    public bool SendHeartbeat(int prevLogIndex)
     {
-        System.Console.WriteLine($"Node {Id} sending Heartbeat");
-        foreach (var node in Nodes)
-        {
-            if (node.Id != Id)
-            {
-                node.AppendEntries(CurrentTerm, Id, LastLogIndex, LastLogTerm, [], CommitIndex);
-            }
-        }
-        ResetActionTimer();
-    }
-
-    public (int term, bool success) AppendEntries(int term, Guid leaderId, int prevLogIndex, int prevLogTerm, LogEntry[] entries, int leaderCommit)
-    {
-        if (term < CurrentTerm)
-        {
-            return (CurrentTerm, false);
-        }
-
-        if (term > CurrentTerm)
-        {
-            MostRecentLeader = leaderId;
-            CurrentTerm = term;
-            Role = Role.Follower;
-            VotedFor = null;
-        }
-
-        var logs = File.ReadAllLines(LogFile);
-        if (prevLogIndex >= 0 && logs.Length > prevLogIndex && logs[prevLogIndex] != prevLogTerm.ToString())
-        {
-            return (CurrentTerm, false);
-        }
-
-        for (int i = 0; i < entries.Length; i++)
-        {
-            if (logs.Length > prevLogIndex + 1 + i && logs[prevLogIndex + 1 + i] != entries[i].Term.ToString())
-            {
-                logs = logs.Take(prevLogIndex + 1 + i).ToArray();
-            }
-
-            if (logs.Length <= prevLogIndex + 1 + i)
-            {
-                var newLogs = new List<string>(logs);
-                newLogs.Add(entries[i].Term.ToString());
-                logs = newLogs.ToArray();
-            }
-        }
-
-        if (leaderCommit > CommitIndex)
-        {
-            CommitIndex = Math.Min(leaderCommit, prevLogIndex + entries.Length);
-        }
-
-        File.WriteAllLines(LogFile, logs);
-
-        ResetActionTimer();
-        return (CurrentTerm, true);
-    }
-
-    public void DoAction(object? sender, ElapsedEventArgs e)
-    {
-        switch (Role)
-        {
-            case Role.Follower:
-                BecomeCandidate();
-                break;
-            case Role.Candidate:
-                BecomeCandidate();
-                break;
-            case Role.Leader:
-                System.Console.WriteLine($"Node {Id} sending Heartbeat");
-                SendHeartbeat();
-                break;
-        }
-    }
-
-    private void BecomeCandidate()
-    {
-        Role = Role.Candidate;
-        CurrentTerm++;
-        VotedFor = Id;
-
-        var votesReceived = 1;
+        var prevLogTerm = prevLogIndex > 0 ? GetLogEntry(prevLogIndex).Term : 0;
+        var successCount = 0;
 
         foreach (var node in Nodes)
         {
-            if (node.Id != Id)
+            if (node.Id == Id) continue;
+            var success = false;
+            var term = 0;
+            while (!success)
             {
-                var (term, voteGranted) = node.RequestVote(CurrentTerm, Id, LastApplied, CurrentTerm);
+                var entries = GetLogEntries(prevLogIndex);
+                (success, term) = node.AppendEntries(CurrentTerm, Id, prevLogIndex, prevLogTerm, entries);
+
                 if (term > CurrentTerm)
                 {
+                    CurrentTerm = term;
                     Role = Role.Follower;
+                    return false;
+                }
+
+                if (success)
+                {
+                    successCount++;
+                }
+                else
+                {
+                    prevLogIndex--;
+                    prevLogTerm = prevLogIndex < 0 ? 0 :  GetLogEntry(prevLogIndex).Term;
+                }
+
+                if (prevLogIndex < -1)
+                {
                     break;
                 }
-                if (voteGranted) votesReceived++;
             }
+
         }
 
-        if (votesReceived > Nodes.Count / 2)
+        if (successCount >= Nodes.Count / 2)
         {
-            Role = Role.Leader;
-            System.Console.WriteLine($"Node {Id} became Leader");
-            SendHeartbeat();
+            CommitIndex = LastLogIndex;
+
+            UpdateStateMachine();
         }
-        ResetActionTimer();
+
+        return true;
     }
 
-    private void ResetActionTimer()
+    private void UpdateStateMachine()
     {
-        _actionTimer.Stop();
-        _actionTimer.Interval = GetElectionTimeout();
-        _actionTimer.Start();
-    }
-
-    public void Run()
-    {
-        _actionTimer.Start();
-
-        while (_isRunning)
+        while (LastApplied < CommitIndex)
         {
-            Thread.Sleep(1000);
+            LastApplied++;
+            var entry = GetLogEntry(LastApplied);
+            StateMachine[entry.Key] = (entry.Value, LastApplied);
         }
-
-        _actionTimer.Stop();
     }
 
-    public static void StopAll()
-    {
-        _isRunning = false;
-    }
+    // public Node()
+    // {
+
+    // }
+
+    // public (int term, bool voteGranted) RequestVote(int term, Guid candidateId, int lastLogIndex, int lastLogTerm)
+    // {
+
+    // }
+
+    // public void SendHeartbeat()
+    // {
+
+    // }
+
+    // public (int term, bool success) AppendEntries(int term, Guid leaderId, int prevLogIndex, int prevLogTerm, LogEntry[] entries, int leaderCommit)
+    // {
+
+    // }
+
+    // public void DoAction(object? sender, ElapsedEventArgs e)
+    // {
+
+    // }
+
+    // private void BecomeCandidate()
+    // {
+
+    // }
+
+    // private int GetElectionTimeout()
+    // {
+    //     if (Role == Role.Leader)
+    //     {
+    //         return 175;
+    //     }
+    //     return _random.Next(MinResetTimeout, MaxResetTimeout);
+    // }
+
+    // private void ResetActionTimer()
+    // {
+    //     _actionTimer.Stop();
+    //     _actionTimer.Interval = GetElectionTimeout();
+    //     _actionTimer.Start();
+    // }
+
+    // public void Run()
+    // {
+    //     _actionTimer.Start();
+
+    //     while (_isRunning)
+    //     {
+    //         Thread.Sleep(1000);
+    //     }
+
+    //     _actionTimer.Stop();
+    // }
+
+    // public static void StopAll()
+    // {
+    //     _isRunning = false;
+    // }
 }
