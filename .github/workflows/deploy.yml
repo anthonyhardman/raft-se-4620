@@ -10,6 +10,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Build docker images
         run: |
+          cd ops
           docker compose build
 
   Test:
@@ -24,10 +25,11 @@ jobs:
 
   Deploy:
     runs-on: self-hosted
-    needs: Build
+    needs: Test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Deploy to production
         run: |
+          cd ops
           docker compose up -d
