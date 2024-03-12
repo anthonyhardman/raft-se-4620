@@ -1,0 +1,33 @@
+name: Raftr
+run-name: ${{ github.actor }} is deploying 🚀
+on: [push]
+
+jobs:
+  Build:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build docker images
+        run: |
+          docker compose build
+
+  Test:
+    runs-on: self-hosted
+    needs: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Test
+        run: |
+          dotnet test Raft.Tests --no-build
+
+  Deploy:
+    runs-on: self-hosted
+    needs: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Deploy to production
+        run: |
+          docker compose up -d
