@@ -11,6 +11,10 @@ exporters:
   loki:
     endpoint: http://ah-loki:3100/loki/api/v1/push
 
+extensions:
+  health_check:
+  pprof:
+  zpages:
 
 service:
   pipelines:
