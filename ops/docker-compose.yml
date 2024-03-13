@@ -34,3 +34,34 @@ services:
       dockerfile: Raft.Node/Dockerfile
     environment:
       - nodes=ah-node-1,ah-node-2
+
+  ah-loki:
+    container_name: ah-loki
+    image: grafana/loki:latest
+    depends_on:
+      - ah-gateway
+      - ah-node-1
+      - ah-node-2
+      - ah-node-3
+
+  ah-otel-collector:
+    container_name: ah-otel-collector
+    image: otel/opentelemetry-collector:latest
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yaml
+    depends_on:
+      - ah-loki
+
+  ah-grafana:
+    container_name: ah-grafana
+    image: grafana/grafana:latest
+    ports:
+      - "345:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-datasource.yml:/etc/grafana/provisioning/datasources/grafana-datasource.yml
+    depends_on:
+      - ah-otel-collector
+
+volumes:
+  grafana_data:

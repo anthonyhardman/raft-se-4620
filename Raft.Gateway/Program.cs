@@ -1,27 +1,33 @@
+using OpenTelemetry.Logs;
+using OpenTelemetry.Resources;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddControllers();
 
+builder.Logging.AddOpenTelemetry(options =>
+{
+    options.AddOtlpExporter(options =>
+    {
+        options.Endpoint = new Uri("http://ah-otel-collector:4317");
+    }).SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Raft.Gateway"));
+});
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI(o => {
+        o.SwaggerEndpoint("/swagger/v1/swagger.json", "Raft.Gateway v1");
+        o.RoutePrefix = string.Empty;
+    });
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllers();
 
 app.Run();
