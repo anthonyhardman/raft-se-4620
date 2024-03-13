@@ -46,7 +46,8 @@ services:
 
   ah-otel-collector:
     container_name: ah-otel-collector
-    image: otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
     depends_on:
