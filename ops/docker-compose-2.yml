@@ -1,6 +1,7 @@
 version: '3'
 
-ah-node-3:
+services:
+  ah-node-3:
     container_name: ah-node-3
     build:
       context: ..
