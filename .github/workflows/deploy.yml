@@ -42,7 +42,7 @@ jobs:
       - name: Deploy to production
         run: |
           cd ops
-          docker compose up -f docker-compose-1.yml -d 
+          docker compose -f docker-compose-1.yml up -d 
 
   Deploy-2:
     runs-on: [self-hosted, raft-2]
@@ -53,4 +53,4 @@ jobs:
       - name: Deploy to production
         run: |
           cd ops
-          docker compose up -f docker-compose-2.yml -d 
+          docker compose -f docker-compose-2.yml up -d 
