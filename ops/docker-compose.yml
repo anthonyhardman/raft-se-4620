@@ -9,7 +9,7 @@ services:
     ports:
       - "344:8080"
     environment:
-      - nodes=ah-node-1,ah-node-2,ah-node-3
+      - NODES=ah-node-1:8080,ah-node-2:8080,ah-node-3:8080
 
   ah-node-1:
     container_name: ah-node-1
@@ -17,7 +17,8 @@ services:
       context: ..
       dockerfile: Raft.Node/Dockerfile
     environment:
-      - nodes=ah-node-2,ah-node-3
+      - NODES=ah-node-2:8080,ah-node-3:8080
+      - NODE_ID=ah-node-1:8080
 
   ah-node-2:
     container_name: ah-node-2
@@ -25,7 +26,10 @@ services:
       context: ..
       dockerfile: Raft.Node/Dockerfile
     environment:
-      - nodes=ah-node-1,ah-node-3
+      - NODES=ah-node-1:8080,ah-node-3:8080
+      - NODE_ID=ah-node-2:8080
+    depends_on:
+      - ah-node-1
 
   ah-node-3:
     container_name: ah-node-3
@@ -33,7 +37,10 @@ services:
       context: ..
       dockerfile: Raft.Node/Dockerfile
     environment:
-      - nodes=ah-node-1,ah-node-2
+      - NODES=ah-node-1:8080,ah-node-2:8080
+      - NODE_ID=ah-node-3:8080
+    depends_on:
+      - ah-node-2
 
   ah-loki:
     container_name: ah-loki

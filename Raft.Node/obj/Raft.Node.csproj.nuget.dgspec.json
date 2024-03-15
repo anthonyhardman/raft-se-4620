@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/home/sphere/repos/raft-se-4620/Raft.Node/Raft.Node.csproj": {}
+    "/home/anthony/repos/raft-se-4620/Raft.Node/Raft.Node.csproj": {}
   },
   "projects": {
-    "/home/sphere/repos/raft-se-4620/Raft.Node/Raft.Node.csproj": {
+    "/home/anthony/repos/raft-se-4620/Raft.Node/Raft.Node.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/sphere/repos/raft-se-4620/Raft.Node/Raft.Node.csproj",
+        "projectUniqueName": "/home/anthony/repos/raft-se-4620/Raft.Node/Raft.Node.csproj",
         "projectName": "Raft.Node",
-        "projectPath": "/home/sphere/repos/raft-se-4620/Raft.Node/Raft.Node.csproj",
-        "packagesPath": "/home/sphere/.nuget/packages/",
-        "outputPath": "/home/sphere/repos/raft-se-4620/Raft.Node/obj/",
+        "projectPath": "/home/anthony/repos/raft-se-4620/Raft.Node/Raft.Node.csproj",
+        "packagesPath": "/home/anthony/.nuget/packages/",
+        "outputPath": "/home/anthony/repos/raft-se-4620/Raft.Node/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/sphere/.nuget/NuGet/NuGet.Config"
+          "/home/anthony/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -25,18 +25,45 @@
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "/home/anthony/repos/raft-se-4620/Raft.Shared/Raft.Shared.csproj": {
+                "projectPath": "/home/anthony/repos/raft-se-4620/Raft.Shared/Raft.Shared.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[8.0.2, )"
+            },
+            "OpenTelemetry.Instrumentation.AspNetCore": {
+              "target": "Package",
+              "version": "[1.7.1, )"
+            },
+            "OpenTelemetry.Instrumentation.Http": {
+              "target": "Package",
+              "version": "[1.7.1, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.4.0, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -56,7 +83,65 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.101/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.200/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/anthony/repos/raft-se-4620/Raft.Shared/Raft.Shared.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/anthony/repos/raft-se-4620/Raft.Shared/Raft.Shared.csproj",
+        "projectName": "Raft.Shared",
+        "projectPath": "/home/anthony/repos/raft-se-4620/Raft.Shared/Raft.Shared.csproj",
+        "packagesPath": "/home/anthony/.nuget/packages/",
+        "outputPath": "/home/anthony/repos/raft-se-4620/Raft.Shared/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/anthony/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.200/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
