@@ -75,10 +75,19 @@ namespace MyApp.Namespace
     }
 
     [HttpPost("compare-and-swap")]
-    public bool CompareAndSwap(string key, int oldValue, int newValue)
+    public async Task<ActionResult<bool>> CompareAndSwap(string key, int oldValue, int newValue)
     {
-      _logger.LogInformation("CompareAndSwap called with key {key}, oldValue {oldValue}, newValue {newValue}", key, oldValue, newValue);
-      return true;
+      var currentValue = (await StrongGet(key)).Value;
+
+      if (currentValue == oldValue)
+      {
+        await Append(key, newValue);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
     [HttpPost("append")]
