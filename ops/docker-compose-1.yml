@@ -20,7 +20,7 @@ services:
       - 346:8080 
     environment:
       - NODES=144.17.92.15:347,144.17.92.14:348
-      - NODE_ID=144.17.92.15:8080
+      - NODE_ID=144.17.92.15:346
 
   ah-node-2:
     container_name: ah-node-2
@@ -31,7 +31,7 @@ services:
       - 347:8080
     environment:
       - NODES=144.17.92.15:346,144.17.92.14:348
-      - NODE_ID=144.17.92.15:8080
+      - NODE_ID=144.17.92.15:347
 
   ah-loki:
     container_name: ah-loki
