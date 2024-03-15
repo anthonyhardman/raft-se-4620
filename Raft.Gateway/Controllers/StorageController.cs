@@ -24,9 +24,32 @@ namespace MyApp.Namespace
     }
 
     [HttpGet("strong")]
-    public int StrongGet(string key)
+    public async Task<ActionResult<int>> StrongGet(string key)
     {
       _logger.LogInformation("StrongGet called with key {key}", key);
+
+      var leader = await GetLeader();
+      Console.WriteLine($"Leader is {leader}---------------------------------");
+
+      if (leader != null)
+      {
+        var httpClient = new HttpClient
+        {
+          BaseAddress = new Uri($"http://{leader}")
+        };
+        Console.WriteLine($"Getting from {leader}");
+        var response = await httpClient.GetAsync($"/api/node/StrongGet?key={key}");
+        var responseString = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+          Console.WriteLine($"Failed to get from {leader}, status code {response.StatusCode}");
+          Console.WriteLine(responseString);
+          return StatusCode((int)response.StatusCode, responseString);
+        }
+        var value = int.Parse(responseString);
+        return value;
+      }
+
       return 42;
     }
 

@@ -1,0 +1,12 @@
+version: '3'
+
+ah-node-3:
+    container_name: ah-node-3
+    build:
+      context: ..
+      dockerfile: Raft.Node/Dockerfile
+    ports:
+      - 348:8080
+    environment:
+      - NODES=144.17.92.15:346,144.17.92.15:347
+      - NODE_ID=144.17.92.14:348

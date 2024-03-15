@@ -9,47 +9,33 @@ services:
     ports:
       - "344:8080"
     environment:
-      - NODES=ah-node-1:8080,ah-node-2:8080,ah-node-3:8080
+      - NODES=144.17.92.15:346,144.17.92.15:347,144.17.92.14:348
 
   ah-node-1:
     container_name: ah-node-1
     build:
       context: ..
       dockerfile: Raft.Node/Dockerfile
+    ports:
+      - 346:8080 
     environment:
-      - NODES=ah-node-2:8080,ah-node-3:8080
-      - NODE_ID=ah-node-1:8080
+      - NODES=144.17.92.15:347,144.17.92.14:348
+      - NODE_ID=144.17.92.15:8080
 
   ah-node-2:
     container_name: ah-node-2
     build:
       context: ..
       dockerfile: Raft.Node/Dockerfile
+    ports:
+      - 347:8080
     environment:
-      - NODES=ah-node-1:8080,ah-node-3:8080
-      - NODE_ID=ah-node-2:8080
-    depends_on:
-      - ah-node-1
-
-  ah-node-3:
-    container_name: ah-node-3
-    build:
-      context: ..
-      dockerfile: Raft.Node/Dockerfile
-    environment:
-      - NODES=ah-node-1:8080,ah-node-2:8080
-      - NODE_ID=ah-node-3:8080
-    depends_on:
-      - ah-node-2
+      - NODES=144.17.92.15:346,144.17.92.14:348
+      - NODE_ID=144.17.92.15:8080
 
   ah-loki:
     container_name: ah-loki
     image: grafana/loki:latest
-    depends_on:
-      - ah-gateway
-      - ah-node-1
-      - ah-node-2
-      - ah-node-3
 
   ah-otel-collector:
     container_name: ah-otel-collector

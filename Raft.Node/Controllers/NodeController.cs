@@ -10,59 +10,86 @@ namespace MyApp.Namespace;
 [ApiController]
 public class NodeController : ControllerBase
 {
-  private readonly Node _node;
+    private readonly Node _node;
 
-  public NodeController(Node node)
-  {
-    _node = node;
-  }
-
-  [HttpPost("append-entries")]
-  public ActionResult<AppendEntriesResponse> Append(AppendEntriesRequest request)
-  {
-    var (success, term) = _node.AppendEntries(request.Term, request.LeaderId, request.PrevLogIndex, request.PrevLogTerm, request.Entries);
-
-    return Ok(new {
-      success,
-      term
-    });
-  }
-
-  [HttpPost("request-vote")]
-  public ActionResult<RequestVoteResponse> RequestVote(RequestVoteRequest request)
-  {
-    var (term, voteGranted) = _node.RequestVote(request.Term, request.CandidateId, request.LastLogIndex, request.LastLogTerm);
-
-    return Ok(new {
-      voteGranted,
-      term
-    });
-  }
-
-  [HttpGet("value")]
-  public ActionResult<int> GetValue(string key)
-  {
-    if (!_node.StateMachine.ContainsKey(key))
+    public NodeController(Node node)
     {
-      return NotFound($"Key {key} not found, {_node.Id}");
+        _node = node;
     }
 
-    var (value, _) = _node.StateMachine[key];
+    [HttpPost("append-entries")]
+    public ActionResult<AppendEntriesResponse> Append(AppendEntriesRequest request)
+    {
+        var (success, term) = _node.AppendEntries(request.Term, request.LeaderId, request.PrevLogIndex, request.PrevLogTerm, request.Entries);
 
-    return Ok(value);
-  }
+        return Ok(new
+        {
+            success,
+            term
+        });
+    }
 
-  [HttpPost("append")]
-  public ActionResult AppendEntry(AppendRequest request)
-  {
-    _node.AppendEntry(_node.CurrentTerm, request.Key, request.Value);
-    // _node.UpdateStateMachine();
-    return Ok();
-  }
+    [HttpPost("request-vote")]
+    public ActionResult<RequestVoteResponse> RequestVote(RequestVoteRequest request)
+    {
+        var (term, voteGranted) = _node.RequestVote(request.Term, request.CandidateId, request.LastLogIndex, request.LastLogTerm);
 
-  [HttpGet("role")]
-  public ActionResult<string> GetRole()
-  {
-    return Ok(_node.Role.ToString());
-  }
+        return Ok(new
+        {
+            voteGranted,
+            term
+        });
+    }
+
+    [HttpGet("value")]
+    public ActionResult<int> GetValue(string key)
+    {
+        try
+        {
+            var value = _node.GetValue(key);
+            return Ok(value);
+        }
+        catch (Exception e)
+        {
+            return NotFound(e.Message);
+        }
+    }
+
+    [HttpGet("StrongGet")]
+    public async Task<ActionResult<int>> StrongGet(string key)
+    {
+        try
+        {
+            var value = await _node.StrongGet(key);
+            return Ok(value);
+        }
+        catch (Exception e)
+        {
+            return NotFound(e.Message);
+        }
+    }
+
+    [HttpPost("append")]
+    public ActionResult AppendEntry(AppendRequest request)
+    {
+        _node.AppendEntry(_node.CurrentTerm, request.Key, request.Value);
+        return Ok();
+    }
+
+    [HttpGet("role")]
+    public ActionResult<string> GetRole()
+    {
+        return Ok(_node.Role.ToString());
+    }
+
+    [HttpGet("leader")]
+    public ActionResult<string> GetLeader()
+    {
+        if (_node.Role == Role.Leader)
+        {
+            return Ok(_node.Id);
+        }
+
+        return _node.MostRecentLeader;
+    }
 }
