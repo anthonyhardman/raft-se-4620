@@ -11,3 +11,11 @@ services:
     environment:
       - NODES=144.17.92.15:346,144.17.92.15:347
       - NODE_ID=144.17.92.14:348
+
+  ah-shop:
+    container_name: ah-shop
+    build:
+      context: ..
+      dockerfile: Raft.Shop/Dockerfile
+    ports:
+      - 349:8080
