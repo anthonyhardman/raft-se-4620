@@ -1,3 +1,4 @@
+using Raft.Shop;
 using Raft.Shop.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+var storageUrl = System.Environment.GetEnvironmentVariable("STORAGE_SERVICE_URL") ?? "http://localhost:5001";
+
+builder.Services.AddHttpClient("StorageClient", client =>
+{
+    client.BaseAddress = new Uri(storageUrl);
+});
+
+builder.Services.AddScoped<StorageService>();
+builder.Services.AddScoped<InventoryService>();
 
 var app = builder.Build();
 

@@ -1,0 +1,89 @@
+﻿@page "/balance"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+
+@if (!UsernameEntered || string.IsNullOrEmpty(User))
+{
+    <EditForm Model="@this" OnSubmit="HandleFormSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label for="username" class="form-label">Enter your username:
+            <InputText id="username" class="form-control" @bind-Value="User" />
+        </label>
+    </div>
+    <button type="submit" class="btn btn-primary">Check Balance</button>
+</EditForm>
+}
+else
+{
+    <p>Hi, @User</p>
+    <p>Your balance is: $@Balance</p>
+
+    <EditForm Model="@this">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <label class="form-label">
+            <InputNumber @bind-Value="DepositOrWithdrawAmount" class="form-control" />
+        </label>
+        <button type="submit" class="btn btn-primary" @onclick="DepositToUserBalance"
+            disabled="@disableDepositAndWithdrawButtons">Deposit</button>
+        <button type="button" class="btn btn-primary" @onclick="WithdrawFromUserBalance"
+            disabled="@disableDepositAndWithdrawButtons">Withdraw</button>
+    </EditForm>
+}
+
+@code {
+    [Required(ErrorMessage = "Username is required")]
+    private string User { get; set; }
+    private int Balance { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Please enter a positive number")]
+    private int DepositOrWithdrawAmount { get; set; }
+
+    private bool disableDepositAndWithdrawButtons = false;
+
+    [Inject]
+    private StorageService StorageService { get; set; }
+
+    private bool UsernameEntered { get; set; } = false;
+
+    private async Task HandleFormSubmit()
+    {
+        Console.WriteLine("Form submitted ---------------------");
+        if (!string.IsNullOrEmpty(User))
+        {
+            await GetUserBalance();
+            Console.WriteLine($"Username entered, balance retrieved. {Balance}");
+            UsernameEntered = true;
+        }
+    }
+
+    private async Task GetUserBalance()
+    {
+        Balance = await StorageService.GetUserBalance(User);
+        StateHasChanged();
+    }
+
+    private async Task DepositToUserBalance()
+    {
+        disableDepositAndWithdrawButtons = true;
+        await StorageService.UpdateUserBalance(User, DepositOrWithdrawAmount);
+        Thread.Sleep(1000);
+        GetUserBalance();
+        DepositOrWithdrawAmount = 0;
+        disableDepositAndWithdrawButtons = false;
+        StateHasChanged();
+    }
+
+    private async Task WithdrawFromUserBalance()
+    {
+        disableDepositAndWithdrawButtons = true;
+        await StorageService.UpdateUserBalance(User, -DepositOrWithdrawAmount);
+        Thread.Sleep(1000);
+        GetUserBalance();
+        DepositOrWithdrawAmount = 0;
+        disableDepositAndWithdrawButtons = false;
+        StateHasChanged();
+    }
+}

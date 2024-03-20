@@ -9,31 +9,47 @@ services:
     ports:
       - "344:8080"
     environment:
-      - NODES=144.17.92.15:346,144.17.92.15:347,144.17.92.14:348
+      - NODES=ah-node-1:8080,ah-node-2:8080,ah-node-3:8080
 
   ah-node-1:
     container_name: ah-node-1
     build:
       context: ..
       dockerfile: Raft.Node/Dockerfile
+    image: ah-raft-node
     ports:
-      - 346:8080 
+      - 346:8080
     environment:
-      - NODES=144.17.92.15:347,144.17.92.14:348
-      - NODE_ID=144.17.92.15:346
-    restart: on-failure
+      - NODES=ah-node-2:8080,ah-node-3:8080
+      - NODE_ID=ah-node-1:8080
 
   ah-node-2:
     container_name: ah-node-2
-    build:
-      context: ..
-      dockerfile: Raft.Node/Dockerfile
+    image: ah-raft-node
     ports:
       - 347:8080
     environment:
-      - NODES=144.17.92.15:346,144.17.92.14:348
-      - NODE_ID=144.17.92.15:347
-    restart: on-failure
+      - NODES=ah-node-1:8080,ah-node-3:8080
+      - NODE_ID=ah-node-2:8080
+      
+  ah-node-3:
+    container_name: ah-node-3
+    image: ah-raft-node
+    ports:
+      - 348:8080
+    environment:
+      - NODES=ah-node-1:8080,ah-node-2:8080
+      - NODE_ID=ah-node-3:8080
+
+  ah-shop:
+    container_name: ah-shop
+    build:
+      context: ..
+      dockerfile: Raft.Shop/Dockerfile
+    ports:
+      - 349:8080
+    environment:
+      - STORAGE_SERVICE_URL=http://ah-gateway:8080
 
   ah-loki:
     container_name: ah-loki
@@ -42,7 +58,7 @@ services:
   ah-otel-collector:
     container_name: ah-otel-collector
     image: otel/opentelemetry-collector-contrib:latest
-    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
     volumes:
       - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
     depends_on:

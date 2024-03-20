@@ -1,0 +1,53 @@
+﻿<div class="border p-2 my-2">
+    <div class="row">
+        <p class="col">@Item.Name</p>
+        <p class="col">Price: $@Item.Price</p>
+        <p class="col">Stock: @Item.Stock</p>
+    </div>
+    <div class="d-flex justify-content-end">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <label class="form-label">
+                <InputNumber @bind-Value="AddOrRemoveAmount" class="form-control my-auto" />
+            </label>
+            <button type="submit" class="btn btn-primary my-auto" @onclick="AddStock"
+                disabled="@disableDepositAndWithdrawButtons">Add</button>
+            <button type="button" class="btn btn-primary my-auto" @onclick="RemoveStock"
+                disabled="@disableDepositAndWithdrawButtons">Remove</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Inject] InventoryService InventoryService { get; set; }
+
+    [Parameter]
+    public StoreItem Item { get; set; }
+
+    private int AddOrRemoveAmount { get; set; }
+
+    private bool disableDepositAndWithdrawButtons = false;
+
+    private async Task AddStock()
+    {
+        disableDepositAndWithdrawButtons = true;
+        await InventoryService.UpdateStock(Item, AddOrRemoveAmount);
+        Thread.Sleep(1000);
+        await InventoryService.UpdateItemStock(Item);
+        AddOrRemoveAmount = 0;
+        StateHasChanged();
+        disableDepositAndWithdrawButtons = false;
+    }
+
+    private async Task RemoveStock()
+    {
+        disableDepositAndWithdrawButtons = true;
+        await InventoryService.UpdateStock(Item, -AddOrRemoveAmount);
+        Thread.Sleep(1000);
+        await InventoryService.UpdateItemStock(Item);
+        AddOrRemoveAmount = 0;
+        StateHasChanged();
+        disableDepositAndWithdrawButtons = false;
+    }
+}
