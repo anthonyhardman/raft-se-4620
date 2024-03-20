@@ -21,4 +21,4 @@ services:
     ports:
       - 349:8080
     environment:
-      - STORAGE_SERVICE_URL=http://144.17.92.15:346
+      - STORAGE_SERVICE_URL=http://144.17.92.15:344
