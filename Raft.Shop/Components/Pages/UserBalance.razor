@@ -50,11 +50,9 @@ else
 
     private async Task HandleFormSubmit()
     {
-        Console.WriteLine("Form submitted ---------------------");
         if (!string.IsNullOrEmpty(User))
         {
             await GetUserBalance();
-            Console.WriteLine($"Username entered, balance retrieved. {Balance}");
             UsernameEntered = true;
         }
     }

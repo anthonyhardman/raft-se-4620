@@ -29,7 +29,7 @@ public class StorageService
     public async Task UpdateUserBalance(string userId, int amount)
     {
         var userBalanceKey = userId.Replace(" ", "-") + "-balance";
-        var userBalance = await GetUserBalance(userBalanceKey);
+        var userBalance = await GetUserBalance(userId);
 
         try 
         {
